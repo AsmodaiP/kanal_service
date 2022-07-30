@@ -2,11 +2,12 @@
 
 import xml.etree.ElementTree as ET
 
+import requests
+
 URL = 'https://www.cbr.ru/scripts/XML_daily.asp'
 
 
 def get_xml() -> ET.Element:
-    import requests
     response = requests.get(URL)
     return ET.fromstring(response.text)
 
