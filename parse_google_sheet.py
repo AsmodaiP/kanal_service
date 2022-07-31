@@ -1,6 +1,7 @@
 import datetime
 import logging
 import os
+from re import S
 from typing import List
 
 from dotenv import load_dotenv
@@ -10,7 +11,8 @@ from tqdm import tqdm
 
 from convert_valute import get_course
 from database import SuppliesManager, Supply
-from settiings import CURRENCY_CODE
+from settiings import CURRENCY_CODE, CHAT_ID_FOR_NOTIFICATION
+from bot import bot
 
 load_dotenv()
 
@@ -58,20 +60,13 @@ def update_supplies():
     sheet_name = os.getenv('GOOGLE_SHEET_NAME')
     credentials = get_credentials()
     values = parse_google_sheet(sheet_id, sheet_name, credentials)
-    new_supplies = []
-    supplies_to_update = []
+    supplies = []
     for row in tqdm(values[1:]):
         try:
             supply = parse_row_to_supply(row, current_course)
-            supply_from_db = supplies_manager.get_supply_by_order_number(supply.order_number)
-            if supply_from_db is None:
-                new_supplies.append(supply)
-            else:
-                if any((supply_from_db.price_in_valute != supply.price_in_valute, supply_from_db.date != supply.date, supply_from_db.price_in_rub != supply.price_in_rub)):
-                    supplies_to_update.append(supply)
+            supplies.append(supply)
         except Exception as e:
             logging.error(e, exc_info=True)
-    supplies_manager.add_multiple_supplies(new_supplies)
-    supplies_manager.update_multiple_supplies(supplies_to_update)
-    logging.info(f'New supplies: {len(new_supplies)}')
-    logging.info(f'Supplies to update: {len(supplies_to_update)}')
+    supplies_manager.delete_all_supplies()
+    supplies_manager.add_multiple_supplies(supplies)
+    logging.info(f'Supplies updated')
